@@ -2,7 +2,7 @@ from PIL import Image
 import glob, os, sys, errno
 import numpy as np
 
-BOUNDARY_WIDTH = 5
+BOUNDARY_WIDTH = 1
 
 def copy_image(argv):
     """
