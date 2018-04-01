@@ -2,6 +2,7 @@
 *.png
 *.gif
 *.jp[e]g
+pictures/*
 
 # Other
 .DS_Store

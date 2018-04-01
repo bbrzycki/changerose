@@ -21,6 +21,7 @@ def get_paste_position(image):
 # colors are tuples, positions are ints
 def get_intermediate_pixel(position, edge_position, boundary_position,
                            background_color, boundary_color):
+
     return tuple([int(a + np.floor((b - a)/(boundary_position - edge_position)
         * (position - edge_position)))
         for (a,b) in zip(background_color,boundary_color)])
@@ -40,25 +41,6 @@ def average_color(*images):
     return (int(np.round(r_tot / pixel_num)),
             int(np.round(g_tot / pixel_num)),
             int(np.round(b_tot / pixel_num)))
-
-# def average_color(image1, image2):
-#     rgb_data1 = image1.getdata()
-#     rgb_data2 = image2.getdata()
-#     r_tot = 0
-#     g_tot = 0
-#     b_tot = 0
-#     for (r,g,b) in rgb_data1:
-#         r_tot += r
-#         g_tot += g
-#         b_tot += b
-#     for (r,g,b) in rgb_data2:
-#         r_tot += r
-#         g_tot += g
-#         b_tot += b
-#     pixel_num = len(rgb_data1) + len(rgb_data2)
-#     return (int(np.round(r_tot / pixel_num)),
-#             int(np.round(g_tot / pixel_num)),
-#             int(np.round(b_tot / pixel_num)))
 
 def average_first_boundary_color(image, boundary_width = BOUNDARY_WIDTH):
     # Analyze border of image to calculate mean color
@@ -122,17 +104,17 @@ def average_boundary_color(image, boundary_width = BOUNDARY_WIDTH):
         # Image is already square to begin with, background color doesn't matter
         return (0, 0, 0)
 
-def color_background(image, color = 0, boundary_width = BOUNDARY_WIDTH):
+def color_background(image, color = 'white', boundary_width = BOUNDARY_WIDTH):
     return Image.new('RGB',get_new_size(image),color)
 
 def average_background(image, boundary_width = BOUNDARY_WIDTH):
     background_color = average_boundary_color(image, boundary_width)
     return Image.new('RGB',get_new_size(image),background_color)
 
-def blend_background(image):
-    background = average_background(image, boundary_width = 1)
-    first_background_color = average_first_boundary_color(image, boundary_width = 1)
-    second_background_color = average_second_boundary_color(image, boundary_width = 1)
+def blend_background(image, boundary_width = BOUNDARY_WIDTH):
+    background = average_background(image, boundary_width)
+    first_background_color = average_first_boundary_color(image, boundary_width)
+    second_background_color = average_second_boundary_color(image, boundary_width)
     # Analyze border of image to calculate mean color
     if image.width > image.height:
         top_boundary_y = get_paste_position(image)[1]
@@ -190,7 +172,8 @@ def blend_background(image):
 
     return background
 
-def copy_image(filenames = '*.png', method = 'color', color = 0):
+def copy_image(filenames = '*.png', method = 'color', color = 'white',
+               boundary_width = BOUNDARY_WIDTH):
     """
     Create image copies with square dimensions by adding additional space to the
     original image. Image copies may fill background with either a solid color
@@ -202,10 +185,11 @@ def copy_image(filenames = '*.png', method = 'color', color = 0):
 
     if len(input_files) == 0:
         sys.exit('The expression \'%s\' does not match any filenames!'
-            % (argv[1],))
+            % (filenames,))
 
+    index = 1
     for input_file in input_files:
-
+        print('Working on %s (%i of %i)' % (input_file, index, len(input_files)))
         # Create directory for image copies; potentially spanning multiple
         # directories
         dirname, filename = os.path.split(os.path.abspath(input_file))
@@ -243,28 +227,33 @@ def copy_image(filenames = '*.png', method = 'color', color = 0):
         final_filename = ''
         if method == 'color':
             final_filename = new_dirname + root + '_changerose_' \
-                           + method + '_' + color + ext
+                           + method + '_' + str(color) + '_b' + str(boundary_width) + ext
         else:
             final_filename = new_dirname + root + '_changerose_' \
-                           + method + ext
+                           + method + '_b' + str(boundary_width) + ext
 
         final_im.save(final_filename)
         final_im.close()
+        print("Saved %s" % final_filename)
+        index += 1
 
 def main():
     parser = argparse.ArgumentParser(description='Make a square image ' +
         "according to a certain background color prescription.")
-    parser.add_argument('-m', '--method', type=str, dest='method',
+    parser.add_argument('-m', type=str, dest='method',
+                        default='color',
                         help='method for generating background ' +
                             '(average, blend, color)')
-    parser.add_argument('-c', '--color', dest='color', default=0,
+    parser.add_argument('-c', dest='color', default='white',
                         help='background color')
+    parser.add_argument('-b', dest='boundary_width', type=int,
+                        default=1, help='boundary width')
     parser.add_argument('filenames', type=str,
                         help='regular expression for filenames')
 
     args = parser.parse_args()
 
-    copy_image(args.filenames, args.method, args.color)
+    copy_image(args.filenames, args.method, args.color, args.boundary_width)
 
 if __name__ == '__main__':
     main()
